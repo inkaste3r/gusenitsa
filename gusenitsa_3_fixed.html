@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#07111d">
+<title>Гусеница 3.0</title>
+<style>
+:root{--accent:#00f5a0;--accent2:#00b8d4;--glow:rgba(0,245,160,.24);--panel:rgba(11,22,37,.88);--line:rgba(255,255,255,.11);--text:#f4fbff;--muted:#9fb2c7}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;width:100%;min-height:100%;height:100%;overflow:hidden;background:#07111d;color:var(--text);font-family:Inter,"Segoe UI",system-ui,Arial,sans-serif;user-select:none}
+body{background:radial-gradient(ellipse at 50% 0%,#172b40 0%,#07111d 62%);display:flex;justify-content:center;align-items:center}
+button,select,input{font:inherit}button{border:0;cursor:pointer;touch-action:manipulation}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+#app{width:100%;height:100%;max-width:520px;min-height:0;display:flex;flex-direction:column;position:relative;padding:clamp(10px,3vw,18px);padding-top:max(12px,env(safe-area-inset-top));padding-bottom:max(12px,env(safe-area-inset-bottom))}
+.screen{display:none;min-height:0;height:100%;width:100%;flex-direction:column;align-items:center;justify-content:center;gap:12px;animation:fade .2s ease}
+.screen.active{display:flex}
+@keyframes fade{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+.brand{font-size:clamp(2.2rem,10vw,3.3rem);font-weight:1000;letter-spacing:.08em;line-height:1;margin:0;text-align:center;color:var(--accent);text-shadow:0 0 28px var(--glow)}
+.tagline{margin:-4px 0 8px;color:var(--muted);font-size:.9rem;text-align:center;letter-spacing:.1em}
+.panel{width:100%;background:var(--panel);border:1px solid var(--line);border-radius:22px;padding:clamp(14px,4vw,20px);box-shadow:0 18px 50px #0007,inset 0 1px #ffffff08;backdrop-filter:blur(14px)}
+.menu-buttons{display:grid;gap:9px}
+.btn{min-height:46px;padding:12px 16px;border-radius:13px;font-weight:850;letter-spacing:.035em;color:#04130f;background:linear-gradient(135deg,var(--accent),var(--accent2));box-shadow:0 6px 20px var(--glow);transition:transform .12s,filter .12s}
+.btn:active{transform:scale(.975);filter:brightness(.9)}
+.btn.secondary{color:#f8fbff;background:linear-gradient(135deg,#34445b,#202d40);box-shadow:none;border:1px solid var(--line)}
+.btn.danger{color:#fff;background:linear-gradient(135deg,#ff5c76,#c83257);box-shadow:0 6px 20px #ff456326}
+.btn.small{min-height:35px;padding:8px 11px;font-size:.82rem}
+.footer{font-size:.8rem;color:var(--muted);text-align:center;margin-top:2px}
+a.author{color:var(--accent);font-weight:900;text-decoration:none;border-bottom:1px dashed currentColor}
+a.author:active{opacity:.7}
+h2{margin:0 0 12px;font-size:1.45rem}
+.subtext{color:var(--muted);font-size:.88rem;line-height:1.5}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:100%}
+.stat{background:#ffffff08;border:1px solid var(--line);border-radius:14px;padding:10px;text-align:center;min-width:0}
+.stat span{display:block;color:var(--muted);font-size:.72rem;margin-bottom:3px}
+.stat b{font-size:1.12rem;color:var(--accent);font-variant-numeric:tabular-nums}
+.game-head{display:flex;align-items:center;justify-content:space-between;width:100%;gap:8px}
+.game-title{font-weight:950;letter-spacing:.1em;color:var(--accent)}
+.icon-btn{width:48px;height:48px;flex-shrink:0;border-radius:15px;background:linear-gradient(145deg,#ffffff18,#ffffff08);color:#fff;border:1px solid color-mix(in srgb,var(--accent) 35%,transparent);font-size:1.25rem;box-shadow:0 5px 15px #0003;touch-action:manipulation}
+#boardWrap{position:relative;width:min(100%,min(74vh,440px));aspect-ratio:1;flex-shrink:1;min-height:0;display:flex;align-items:center;justify-content:center}
+#gameCanvas{width:100%;height:100%;display:block;background:#081421;border:1px solid color-mix(in srgb,var(--accent) 65%,transparent);border-radius:18px;box-shadow:0 0 28px var(--glow),0 18px 35px #0005;touch-action:none}
+#pauseOverlay{position:absolute;inset:0;display:none;align-items:center;justify-content:center;flex-direction:column;gap:10px;border-radius:18px;background:#030914c9;backdrop-filter:blur(5px);text-align:center}
+#pauseOverlay.show{display:flex}
+#pauseOverlay strong{font-size:2rem;color:var(--accent)}
+.game-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%}.game-actions .btn{min-height:48px;font-size:.9rem}
+.dpad{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(2,52px);gap:8px;width:min(270px,78%);flex-shrink:0}
+.dpad button{border:1px solid color-mix(in srgb,var(--accent) 35%,transparent);border-radius:15px;color:#fff;background:linear-gradient(145deg,#ffffff16,#ffffff07);font-size:1.45rem;font-weight:950;box-shadow:0 5px 14px #0003;touch-action:manipulation;min-height:48px}
+.dpad button:active{background:var(--glow);border-color:var(--accent)}
+.dpad .up{grid-column:2}.dpad .left{grid-column:1;grid-row:2}.dpad .down{grid-column:2;grid-row:2}.dpad .right{grid-column:3;grid-row:2}
+.game-bottom{width:100%;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.pill{padding:7px 10px;background:#ffffff0a;border:1px solid var(--line);border-radius:999px;font-size:.78rem;color:var(--muted)}
+.scroll-panel{overflow:auto;max-height:min(60vh,570px);overscroll-behavior:contain}
+.skin-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.skin-card{border:1px solid var(--line);background:#ffffff07;border-radius:15px;padding:12px;display:flex;flex-direction:column;gap:9px;min-width:0}
+.skin-top{display:flex;align-items:center;gap:9px}
+.swatch{width:28px;height:28px;border-radius:50%;border:2px solid #ffffff80;box-shadow:0 0 14px #ffffff14;flex-shrink:0}
+.skin-name{font-weight:850;font-size:.9rem}
+.skin-cost{font-size:.72rem;color:var(--muted);margin-top:2px}
+.skin-card .btn{width:100%;font-size:.78rem;padding:9px 7px;min-height:36px}
+.skin-card .btn:disabled{opacity:.35;cursor:not-allowed}
+.setting-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid #ffffff0c}
+.setting-row:last-child{border-bottom:0}
+.setting-row label{font-size:.92rem}
+.setting-row select{max-width:52%;padding:9px;border-radius:10px;color:#fff;background:#101b2a;border:1px solid var(--line)}
+.setting-row input[type=range]{width:44%;accent-color:var(--accent)}
+.toggle{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:.85rem}
+.toggle input{accent-color:var(--accent);width:18px;height:18px}
+.modal{position:fixed;z-index:20;inset:0;background:#020710d9;display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(8px)}
+.modal.show{display:flex}
+.modal-box{width:100%;max-width:350px;background:#101b2b;border:1px solid var(--line);border-radius:24px;padding:24px;text-align:center;box-shadow:0 24px 80px #0009}
+.modal-box h2{font-size:1.8rem;color:var(--accent);margin-bottom:8px}
+.modal-box .score-big{font-size:2.4rem;font-weight:1000;margin:6px 0 14px}
+.modal-box .menu-buttons{margin-top:18px}
+.toast{position:fixed;z-index:30;bottom:max(20px,env(safe-area-inset-bottom));left:50%;transform:translate(-50%,20px);opacity:0;pointer-events:none;background:#152538;border:1px solid var(--line);border-radius:12px;padding:11px 15px;font-size:.88rem;transition:.2s;max-width:90%;text-align:center}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+#achievementsList{display:grid;gap:8px}
+.achievement{display:flex;align-items:center;gap:10px;padding:11px;background:#ffffff07;border:1px solid var(--line);border-radius:12px}
+.achievement .medal{font-size:1.35rem}
+.achievement small{display:block;color:var(--muted);margin-top:2px}
+.achievement.locked{opacity:.45}
+@media(max-height:700px){#app{padding-top:max(7px,env(safe-area-inset-top));padding-bottom:max(7px,env(safe-area-inset-bottom));gap:5px}.screen{gap:6px}.brand{font-size:2.1rem}.tagline{margin-bottom:1px}.panel{padding:10px}.btn{min-height:42px;padding:9px 12px}#boardWrap{width:min(100%,min(48vh,370px))}.dpad{grid-template-rows:repeat(2,44px);width:min(250px,75%);gap:6px}.stat{padding:6px}.game-actions .btn{min-height:42px}}
+@media(min-width:430px){#boardWrap{width:min(100%,min(65vh,440px))}}
+</style>
+</head>
+<body>
+<div id="app">
+  <section id="menuScreen" class="screen active">
+    <h1 class="brand">ГУСЕНИЦА</h1>
+    <p class="tagline">ВЕРСИЯ 3.0 · GLOBAL UPDATE</p>
+    <div class="panel">
+      <div class="stats" style="margin-bottom:14px">
+        <div class="stat"><span>Рекорд</span><b id="menuBest">0</b></div>
+        <div class="stat"><span>Всего очков</span><b id="totalScore">0</b></div>
+        <div class="stat"><span>Игр сыграно</span><b id="gamesPlayed">0</b></div>
+      </div>
+      <div class="menu-buttons">
+        <button class="btn" id="playBtn">▶ ИГРАТЬ</button>
+        <button class="btn secondary" data-screen="shopScreen">✦ МАГАЗИН СКИНОВ</button>
+        <button class="btn secondary" data-screen="settingsScreen">⚙ НАСТРОЙКИ</button>
+        <button class="btn secondary" data-screen="achievementsScreen">🏆 ДОСТИЖЕНИЯ</button>
+      </div>
+    </div>
+    <p class="footer">Создатель игры: <a class="author" href="https://t.me/ManeraBehavior" target="_blank" rel="noopener noreferrer">АВТОР</a></p>
+  </section>
+
+  <section id="gameScreen" class="screen">
+    <div class="game-head"><button class="icon-btn" id="homeBtn" aria-label="В меню">⌂</button><div class="game-title">ГУСЕНИЦА</div><button class="icon-btn" id="pauseBtn" aria-label="Пауза">Ⅱ</button></div>
+    <div class="stats">
+      <div class="stat"><span>Очки</span><b id="scoreText">0</b></div>
+      <div class="stat"><span>Рекорд</span><b id="highScoreText">0</b></div>
+      <div class="stat"><span>Скорость</span><b id="speedText">1×</b></div>
+    </div>
+    <div id="boardWrap"><canvas id="gameCanvas" width="400" height="400" aria-label="Игровое поле змейки"></canvas><div id="pauseOverlay"><strong>ПАУЗА</strong><span class="subtext">Нажми продолжить, чтобы вернуться в игру</span><button class="btn" id="resumeBtn">▶ ПРОДОЛЖИТЬ</button></div></div>
+    <div class="game-bottom"><span class="pill" id="modePill">Классический режим</span><span class="pill">Управление: стрелки / WASD</span></div>
+    <div class="dpad" aria-label="Управление"><button class="up" data-dir="0,-1">▲</button><button class="left" data-dir="-1,0">◀</button><button class="down" data-dir="0,1">▼</button><button class="right" data-dir="1,0">▶</button></div>
+    <div class="game-actions"><button class="btn secondary" id="restartBtn">↻ ЗАНОВО</button><button class="btn secondary" id="pauseBtn2">Ⅱ ПАУЗА</button></div>
+  </section>
+
+  <section id="shopScreen" class="screen">
+    <h2>✦ Магазин скинов</h2><p class="subtext">Открывай облики, устанавливая новые рекорды.</p>
+    <div class="panel scroll-panel"><div id="shopList" class="skin-grid"></div></div>
+    <button class="btn secondary backBtn">← НАЗАД</button>
+  </section>
+
+  <section id="settingsScreen" class="screen">
+    <h2>⚙ Настройки</h2>
+    <div class="panel">
+      <div class="setting-row"><label for="themeSelect">Цвет интерфейса</label><select id="themeSelect"><option value="green">Неоновый зелёный</option><option value="blue">Электрический синий</option><option value="purple">Фиолетовый</option><option value="orange">Оранжевый</option><option value="cyber">Киберпанк</option><option value="ice">Ледяной</option></select></div>
+      <div class="setting-row"><label for="bgSelect">Фон поля</label><select id="bgSelect"><option value="space">Космос</option><option value="midnight">Полночь</option><option value="forest">Лес</option><option value="grid">Сетка</option><option value="light">Светлый</option></select></div>
+      <div class="setting-row"><label for="difficulty">Сложность</label><select id="difficulty"><option value="easy">Лёгкая</option><option value="normal">Обычная</option><option value="hard">Сложная</option><option value="insane">Безумная</option></select></div>
+      <div class="setting-row"><label for="modeSelect">Режим игры</label><select id="modeSelect"><option value="classic">Классический</option><option value="walls">Без стен (телепорт)</option><option value="rush">Турбо</option></select></div>
+      <div class="setting-row"><label for="musicVol">Музыка</label><input id="musicVol" type="range" min="0" max="100" value="20"></div>
+      <div class="setting-row"><label for="sfxVol">Звуковые эффекты</label><input id="sfxVol" type="range" min="0" max="100" value="65"></div>
+      <div class="setting-row"><label for="gridToggle">Показывать сетку</label><span class="toggle"><input id="gridToggle" type="checkbox" checked> Включена</span></div>
+      <div class="setting-row"><label for="vibrationToggle">Вибрация</label><span class="toggle"><input id="vibrationToggle" type="checkbox" checked> Включена</span></div>
+      <div class="setting-row"><label for="wrapToggle">Обход тела</label><span class="toggle"><input id="wrapToggle" type="checkbox"> Нет</span></div>
+      <div class="setting-row"><label for="particlesToggle">Эффекты частиц</label><span class="toggle"><input id="particlesToggle" type="checkbox" checked> Включены</span></div>
+    </div>
+    <button class="btn secondary backBtn">← НАЗАД</button>
+  </section>
+
+  <section id="achievementsScreen" class="screen">
+    <h2>🏆 Достижения</h2><div class="panel scroll-panel"><div id="achievementsList"></div></div>
+    <button class="btn secondary backBtn">← НАЗАД</button>
+  </section>
+</div>
+
+<div id="gameOverModal" class="modal"><div class="modal-box"><h2 id="endTitle">Игра окончена</h2><p class="subtext">Твой результат</p><div class="score-big" id="finalScore">0</div><p id="recordMessage" class="subtext"></p><div class="menu-buttons"><button class="btn" id="againBtn">↻ ЕЩЁ РАЗ</button><button class="btn secondary" id="endMenuBtn">В МЕНЮ</button></div></div></div>
+<div id="toast" class="toast" role="status"></div>
+
+<script>
+(() => {
+'use strict';
+const $ = id => document.getElementById(id);
+const canvas = $('gameCanvas'), ctx = canvas.getContext('2d');
+const GRID = 20, CELL = canvas.width / GRID;
+const STORE = 'caterpillar_v2_';
+const defaults = {theme:'green',background:'space',difficulty:'normal',mode:'classic',music:20,sfx:65,grid:true,vibration:true,wrap:false,particles:true};
+let settings = {...defaults};
+try { settings = {...defaults,...JSON.parse(localStorage.getItem(STORE+'settings')||'{}')}; } catch {}
+const themes = {
+ green:['#00f5a0','#00b8d4','rgba(0,245,160,.25)'],blue:['#4cc9f0','#4361ee','rgba(76,201,240,.25)'],
+ purple:['#c77dff','#7b2ff7','rgba(199,125,255,.25)'],orange:['#ffb454','#ff5e62','rgba(255,180,84,.25)'],
+ cyber:['#ff3cac','#784ba0','rgba(255,60,172,.25)'],ice:['#b8f3ff','#4d96ff','rgba(184,243,255,.25)']
+};
+const backgrounds = {space:'#081421',midnight:'#080b15',forest:'#0b1b16',grid:'#101a22',light:'#dce8ef'};
+const skins = [
+ {id:'green',name:'Неон',cost:0,color:'#00f5a0',desc:'Стартовый'},
+ {id:'red',name:'Импульс',cost:100,color:'#ff476f',desc:'100 очков рекорда'},
+ {id:'blue',name:'Кибер-синий',cost:250,color:'#399bff',desc:'250 очков рекорда'},
+ {id:'purple',name:'Аметист',cost:500,color:'#b46cff',desc:'500 очков рекорда'},
+ {id:'gold',name:'Золото',cost:750,color:'#ffd166',desc:'750 очков рекорда'},
+ {id:'dark',name:'Тень',cost:1000,color:'#788394',desc:'1000 очков рекорда'},
+ {id:'ice',name:'Лёд',cost:1500,color:'#a8f0ff',desc:'1500 очков рекорда'},
+ {id:'rainbow',name:'Радуга',cost:2500,color:'rainbow',desc:'2500 очков рекорда'},
+ {id:'toxic',name:'Токсик',cost:4000,color:'#b8ff3b',desc:'4000 очков рекорда'},
+ {id:'fire',name:'Пламя',cost:6000,color:'fire',desc:'6000 очков рекорда'}
+];
+const achievements = [
+ {id:'first',name:'Первый укус',desc:'Съешь первое яблоко',icon:'🍎',test:s=>s.bestScore>=25},
+ {id:'100',name:'Разогрев',desc:'Набери 100 очков за игру',icon:'⚡',test:s=>s.bestRun>=100},
+ {id:'500',name:'Профи',desc:'Набери 500 очков за игру',icon:'🏆',test:s=>s.bestRun>=500},
+ {id:'1000',name:'Легенда',desc:'Набери 1000 очков за игру',icon:'👑',test:s=>s.bestRun>=1000},
+ {id:'games10',name:'Постоянство',desc:'Сыграй 10 партий',icon:'🎮',test:s=>s.games>=10},
+ {id:'skin',name:'Стиль',desc:'Открой любой скин кроме стартового',icon:'🎨',test:s=>s.unlocked.length>1},
+ {id:'long',name:'Длинная история',desc:'Достигни длины 20 сегментов',icon:'🐛',test:s=>s.longest>=20},
+ {id:'speed',name:'На пределе',desc:'Набери 500 очков на сложной сложности',icon:'🚀',test:s=>s.hardScore>=500},
+ {id:'easy250',name:'Уверенный старт',desc:'Набери 250 очков на лёгкой сложности',icon:'🌱',test:s=>s.easyScore>=250},
+ {id:'normal500',name:'Стабильный результат',desc:'Набери 500 очков на обычной сложности',icon:'🎯',test:s=>s.normalScore>=500},
+ {id:'insane250',name:'Безумец',desc:'Набери 250 очков на безумной сложности',icon:'💥',test:s=>s.insaneScore>=250},
+ {id:'walls500',name:'Сквозь стены',desc:'Набери 500 очков в режиме без стен',icon:'🌀',test:s=>s.wallsScore>=500},
+ {id:'rush250',name:'Турбо-гонщик',desc:'Набери 250 очков в турбо-режиме',icon:'🏎️',test:s=>s.rushScore>=250},
+ {id:'classic750',name:'Классика не стареет',desc:'Набери 750 очков в классическом режиме',icon:'🐍',test:s=>s.classicScore>=750},
+ {id:'hardWalls500',name:'Стальной рефлекс',desc:'Набери 500 очков на сложной сложности без стен',icon:'🛡️',test:s=>s.hardWallsScore>=500},
+ {id:'insaneRush250',name:'На грани',desc:'Набери 250 очков в турбо-режиме на безумной сложности',icon:'🔥',test:s=>s.insaneRushScore>=250}
+];
+let profile = {bestScore:0,bestRun:0,total:0,games:0,longest:3,hardScore:0,easyScore:0,normalScore:0,insaneScore:0,wallsScore:0,rushScore:0,classicScore:0,hardWallsScore:0,insaneRushScore:0,unlocked:['green'],achievements:[]};
+try { profile = {...profile,...JSON.parse(localStorage.getItem(STORE+'profile')||'{}')}; } catch {}
+for (const k of ['hardScore','easyScore','normalScore','insaneScore','wallsScore','rushScore','classicScore','hardWallsScore','insaneRushScore']) if(typeof profile[k] !== 'number') profile[k]=0;
+profile.unlocked = Array.isArray(profile.unlocked) ? profile.unlocked : ['green'];
+if(!profile.unlocked.includes('green')) profile.unlocked.unshift('green');
+let activeSkin = localStorage.getItem(STORE+'skin') || 'green';
+if(!profile.unlocked.includes(activeSkin)) activeSkin='green';
+let audioCtx=null, musicTimer=null, musicIndex=0, toastTimer=null;
+let snake=[], food=null, particles=[], score=0, direction={x:1,y:0}, turnQueue=[], running=false, paused=false, loopTimer=null, lastTick=0, tickMs=145, foodsEaten=0, newRecord=false, touchStart=null;
+const musicNotes=[261.63,329.63,392,440,392,329.63,293.66,349.23];
+function save(){try{localStorage.setItem(STORE+'profile',JSON.stringify(profile));localStorage.setItem(STORE+'settings',JSON.stringify(settings));localStorage.setItem(STORE+'skin',activeSkin);}catch{}}
+function toast(message){const el=$('toast');el.textContent=message;el.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),2200)}
+function initAudio(){if(!audioCtx){const AC=window.AudioContext||window.webkitAudioContext;if(AC)audioCtx=new AC()}if(audioCtx?.state==='suspended')audioCtx.resume().catch(()=>{})}
+function tone(freq=440,duration=.06,type='sine',volume=.2){if(!settings.sfx||!audioCtx)return;const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type=type;o.frequency.value=freq;g.gain.setValueAtTime(Math.max(.0001,settings.sfx/100*volume),audioCtx.currentTime);g.gain.exponentialRampToValueAtTime(.0001,audioCtx.currentTime+duration);o.connect(g);g.connect(audioCtx.destination);o.start();o.stop(audioCtx.currentTime+duration)}
+function clickSound(){if(settings.sfx>0){initAudio();tone(520,.045,'sine',.12)}}
+function eatSound(){if(settings.sfx>0){initAudio();tone(620,.07,'triangle',.3);setTimeout(()=>tone(850,.08,'triangle',.2),45)}}
+function startMusic(){stopMusic();if(!settings.music)return;initAudio();musicTimer=setInterval(()=>{if(!running||paused||!audioCtx||!settings.music)return;const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type='triangle';o.frequency.value=musicNotes[musicIndex++%musicNotes.length];g.gain.setValueAtTime(settings.music/100*.045,audioCtx.currentTime);g.gain.exponentialRampToValueAtTime(.0001,audioCtx.currentTime+.22);o.connect(g);g.connect(audioCtx.destination);o.start();o.stop(audioCtx.currentTime+.23)},280)}
+function stopMusic(){if(musicTimer)clearInterval(musicTimer);musicTimer=null}
+function vibrate(ms=25){if(settings.vibration&&navigator.vibrate)navigator.vibrate(ms)}
+function applyTheme(){const t=themes[settings.theme]||themes.green;document.documentElement.style.setProperty('--accent',t[0]);document.documentElement.style.setProperty('--accent2',t[1]);document.documentElement.style.setProperty('--glow',t[2]);document.querySelector('meta[name="theme-color"]').content=t[0];draw()}
+function applySettingsToUI(){ $('themeSelect').value=settings.theme;$('bgSelect').value=settings.background;$('difficulty').value=settings.difficulty;$('modeSelect').value=settings.mode;$('musicVol').value=settings.music;$('sfxVol').value=settings.sfx;$('gridToggle').checked=settings.grid;$('vibrationToggle').checked=settings.vibration;$('wrapToggle').checked=settings.wrap;$('particlesToggle').checked=settings.particles;applyTheme()}
+function showScreen(id){clickSound();if(id!=='gameScreen'&&running){stopRun();}document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));$(id).classList.add('active');if(id==='shopScreen')renderShop();if(id==='achievementsScreen')renderAchievements();if(id==='menuScreen')updateMenuStats();if(id==='gameScreen'&&running&&!paused)startMusic()}
+function updateMenuStats(){$('menuBest').textContent=profile.bestScore;$('totalScore').textContent=profile.total.toLocaleString('ru-RU');$('gamesPlayed').textContent=profile.games}
+function renderShop(){const list=$('shopList');list.innerHTML='';skins.forEach(s=>{const unlocked=profile.unlocked.includes(s.id),active=activeSkin===s.id;const card=document.createElement('div');card.className='skin-card';const top=document.createElement('div');top.className='skin-top';const sw=document.createElement('span');sw.className='swatch';sw.style.background=s.color==='rainbow'?'linear-gradient(45deg,red,orange,yellow,lime,cyan,blue,violet)':s.color==='fire'?'linear-gradient(45deg,#ffea00,#ff3d00,#8a0000)':s.color;const info=document.createElement('div');const name=document.createElement('div');name.className='skin-name';name.textContent=s.name;const cost=document.createElement('div');cost.className='skin-cost';cost.textContent=s.cost===0?'Бесплатно':`Рекорд: ${s.cost}`;info.append(name,cost);top.append(sw,info);const btn=document.createElement('button');btn.className='btn '+(active?'':'secondary');btn.textContent=active?'Выбран':unlocked?'Выбрать':'🔒 Закрыт';btn.disabled=!unlocked;btn.addEventListener('click',()=>{activeSkin=s.id;save();renderShop();clickSound();toast('Скин «'+s.name+'» выбран')});card.append(top,btn);list.append(card)})}
+function renderAchievements(){const list=$('achievementsList');list.innerHTML='';achievements.forEach(a=>{const done=profile.achievements.includes(a.id);const row=document.createElement('div');row.className='achievement'+(done?'':' locked');const icon=document.createElement('span');icon.className='medal';icon.textContent=done?'🏅':a.icon;const text=document.createElement('div');text.innerHTML=`<b></b><small></small>`;text.querySelector('b').textContent=a.name; text.querySelector('small').textContent=a.desc;row.append(icon,text);list.append(row)})}
+function checkAchievements(){for(const a of achievements){if(!profile.achievements.includes(a.id)&&a.test(profile)){profile.achievements.push(a.id);toast('Достижение открыто: '+a.name);tone(880,.12,'triangle',.2)}}}
+function unlockSkins(){for(const s of skins){if(profile.bestScore>=s.cost&&!profile.unlocked.includes(s.id)){profile.unlocked.push(s.id);toast('Открыт скин: '+s.name)}}}
+function setDirection(x,y){if(!running||paused)return;const last=turnQueue.length?turnQueue[turnQueue.length-1]:direction;if(x===-last.x&&y===-last.y)return;if(x===last.x&&y===last.y)return;if(turnQueue.length<2)turnQueue.push({x,y});clickSound()}
+function difficultyBase(){return {easy:190,normal:145,hard:112,insane:86}[settings.difficulty]||145}
+function startGame(){clickSound();$('gameOverModal').classList.remove('show');score=0;foodsEaten=0;newRecord=false;particles=[];direction={x:1,y:0};turnQueue=[];snake=[{x:8,y:10},{x:7,y:10},{x:6,y:10}];tickMs=difficultyBase()-(settings.mode==='rush'?30:0);tickMs=Math.max(48,tickMs);running=true;paused=false;$('pauseOverlay').classList.remove('show');$('scoreText').textContent='0';$('highScoreText').textContent=profile.bestScore;$('speedText').textContent='1×';$('modePill').textContent={classic:'Классический режим',walls:'Режим без стен',rush:'Турбо-режим'}[settings.mode];spawnFood();$('gameScreen').classList.add('active');document.querySelectorAll('.screen').forEach(s=>{if(s.id!=='gameScreen')s.classList.remove('active')});lastTick=performance.now();cancelAnimationFrame(loopTimer);loopTimer=requestAnimationFrame(frame);startMusic();draw()}
+function stopRun(){running=false;paused=false;cancelAnimationFrame(loopTimer);stopMusic()}
+function togglePause(){if(!running)return;paused=!paused;$('pauseOverlay').classList.toggle('show',paused);$('pauseBtn').textContent=paused?'▶':'Ⅱ';$('pauseBtn2').textContent=paused?'▶ ПРОДОЛЖИТЬ':'Ⅱ ПАУЗА';if(paused)stopMusic();else{lastTick=performance.now();startMusic();loopTimer=requestAnimationFrame(frame)}clickSound()}
+function spawnFood(){let attempts=0;do{food={x:Math.floor(Math.random()*GRID),y:Math.floor(Math.random()*GRID)};attempts++}while(snake.some(p=>p.x===food.x&&p.y===food.y)&&attempts<1000)}
+function frame(now){if(!running||paused)return;if(now-lastTick>=tickMs){lastTick=now;step()}draw();loopTimer=requestAnimationFrame(frame)}
+function step(){if(turnQueue.length){const next=turnQueue.shift();if(!(next.x===-direction.x&&next.y===-direction.y))direction=next}
+let head={x:snake[0].x+direction.x,y:snake[0].y+direction.y};
+if(settings.mode==='walls'||settings.wrap){head.x=(head.x+GRID)%GRID;head.y=(head.y+GRID)%GRID}else if(head.x<0||head.x>=GRID||head.y<0||head.y>=GRID){endGame();return}
+const eating=head.x===food.x&&head.y===food.y;
+const body=eating?snake:snake.slice(0,-1);
+if(body.some(p=>p.x===head.x&&p.y===head.y)){endGame();return}
+snake.unshift(head);
+if(eating){score+=25;foodsEaten++;profile.total+=25;eatSound();vibrate(18);spawnParticles(head.x,head.y);spawnFood();if(score>profile.bestScore){profile.bestScore=score;newRecord=true;unlockSkins()}if(score>profile.bestRun)profile.bestRun=score;if(snake.length>profile.longest)profile.longest=snake.length;if(settings.difficulty==='hard'||settings.difficulty==='insane')profile.hardScore=Math.max(profile.hardScore,score);
+if(settings.difficulty==='easy')profile.easyScore=Math.max(profile.easyScore,score);
+if(settings.difficulty==='normal')profile.normalScore=Math.max(profile.normalScore,score);
+if(settings.difficulty==='insane')profile.insaneScore=Math.max(profile.insaneScore,score);
+if(settings.mode==='walls'||settings.wrap)profile.wallsScore=Math.max(profile.wallsScore,score);
+if(settings.mode==='rush')profile.rushScore=Math.max(profile.rushScore,score);
+if(settings.mode==='classic'&&!settings.wrap)profile.classicScore=Math.max(profile.classicScore,score);
+if((settings.difficulty==='hard'||settings.difficulty==='insane')&&(settings.mode==='walls'||settings.wrap))profile.hardWallsScore=Math.max(profile.hardWallsScore,score);
+if(settings.difficulty==='insane'&&settings.mode==='rush')profile.insaneRushScore=Math.max(profile.insaneRushScore,score);
+$('scoreText').textContent=score;$('highScoreText').textContent=profile.bestScore;tickMs=Math.max(48,difficultyBase()-(settings.mode==='rush'?30:0)-Math.floor(score/100)*5);$('speedText').textContent=(difficultyBase()/tickMs).toFixed(1)+'×';checkAchievements();save()}else snake.pop()}
+function endGame(){running=false;stopMusic();profile.games++;profile.bestRun=Math.max(profile.bestRun,score);if(settings.difficulty==='hard'||settings.difficulty==='insane')profile.hardScore=Math.max(profile.hardScore,score);
+if(settings.difficulty==='easy')profile.easyScore=Math.max(profile.easyScore,score);
+if(settings.difficulty==='normal')profile.normalScore=Math.max(profile.normalScore,score);
+if(settings.difficulty==='insane')profile.insaneScore=Math.max(profile.insaneScore,score);
+if(settings.mode==='walls'||settings.wrap)profile.wallsScore=Math.max(profile.wallsScore,score);
+if(settings.mode==='rush')profile.rushScore=Math.max(profile.rushScore,score);
+if(settings.mode==='classic'&&!settings.wrap)profile.classicScore=Math.max(profile.classicScore,score);
+if((settings.difficulty==='hard'||settings.difficulty==='insane')&&(settings.mode==='walls'||settings.wrap))profile.hardWallsScore=Math.max(profile.hardWallsScore,score);
+if(settings.difficulty==='insane'&&settings.mode==='rush')profile.insaneRushScore=Math.max(profile.insaneRushScore,score);
+checkAchievements();save();updateMenuStats();renderAchievements();$('finalScore').textContent=score;$('endTitle').textContent=newRecord?'НОВЫЙ РЕКОРД!':'ИГРА ОКОНЧЕНА';$('recordMessage').textContent=newRecord?'Отличный результат! Рекорд обновлён.':'Твой рекорд: '+profile.bestScore+' очков';$('gameOverModal').classList.add('show');stopMusic();vibrate([50,30,50]);tone(180,.22,'sawtooth',.15)}
+function spawnParticles(gx,gy){if(!settings.particles)return;for(let i=0;i<10;i++)particles.push({x:(gx+.5)*CELL,y:(gy+.5)*CELL,vx:(Math.random()-.5)*3.5,vy:(Math.random()-.5)*3.5,life:1,color:themes[settings.theme][0]})}
+function draw(){if(!ctx)return;ctx.clearRect(0,0,canvas.width,canvas.height);const bg=backgrounds[settings.background]||backgrounds.space;ctx.fillStyle=bg;ctx.fillRect(0,0,canvas.width,canvas.height);
+if(settings.background==='space'){const grad=ctx.createRadialGradient(200,120,5,200,200,300);grad.addColorStop(0,'#142b40');grad.addColorStop(1,bg);ctx.fillStyle=grad;ctx.fillRect(0,0,400,400)}
+if(settings.grid){ctx.strokeStyle=settings.background==='light'?'rgba(10,35,55,.09)':'rgba(210,235,255,.065)';ctx.lineWidth=1;for(let i=0;i<=GRID;i++){const p=i*CELL;ctx.beginPath();ctx.moveTo(p,0);ctx.lineTo(p,400);ctx.stroke();ctx.beginPath();ctx.moveTo(0,p);ctx.lineTo(400,p);ctx.stroke()}}
+if(food){const x=(food.x+.5)*CELL,y=(food.y+.5)*CELL;ctx.save();ctx.shadowBlur=18;ctx.shadowColor='#ff4b70';ctx.fillStyle='#ff496c';ctx.beginPath();ctx.arc(x,y,CELL*.34,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;ctx.fillStyle='#fff1f4';ctx.beginPath();ctx.arc(x-CELL*.1,y-CELL*.12,CELL*.09,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#7be36b';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(x,y-CELL*.27);ctx.quadraticCurveTo(x+4,y-CELL*.48,x+7,y-CELL*.38);ctx.stroke();ctx.restore()}
+snake.forEach((p,i)=>{const x=p.x*CELL,y=p.y*CELL,pad=i===0?2:2.6;let color=skinColor(i);ctx.save();ctx.shadowBlur=i===0?16:7;ctx.shadowColor=color;ctx.fillStyle=color;roundRect(ctx,x+pad,y+pad,CELL-pad*2,CELL-pad*2,5);ctx.fill();ctx.restore();if(i===0){const ex=direction.x===1?x+CELL*.69:direction.x===-1?x+CELL*.31:x+CELL*.28;const ey=direction.y===1?y+CELL*.69:direction.y===-1?y+CELL*.31:y+CELL*.28;const ex2=direction.x===1?x+CELL*.69:direction.x===-1?x+CELL*.31:x+CELL*.72;const ey2=direction.y===1?y+CELL*.69:direction.y===-1?y+CELL*.31:y+CELL*.72;ctx.fillStyle='#f9ffff';ctx.beginPath();ctx.arc(ex,ey,2.7,0,Math.PI*2);ctx.arc(ex2,ey2,2.7,0,Math.PI*2);ctx.fill();ctx.fillStyle='#07111d';ctx.beginPath();ctx.arc(ex+direction.x,ey+direction.y,1.2,0,Math.PI*2);ctx.arc(ex2+direction.x,ey2+direction.y,1.2,0,Math.PI*2);ctx.fill()}})
+if(settings.particles){particles=particles.filter(p=>p.life>0);for(const p of particles){ctx.globalAlpha=p.life;ctx.fillStyle=p.color;ctx.beginPath();ctx.arc(p.x,p.y,2.5*p.life,0,Math.PI*2);ctx.fill();p.x+=p.vx;p.y+=p.vy;p.life-=.035}ctx.globalAlpha=1}
+}
+function skinColor(i){const s=skins.find(s=>s.id===activeSkin)||skins[0];if(s.id==='rainbow')return `hsl(${(i*24+performance.now()/14)%360},100%,58%)`;if(s.id==='fire')return `hsl(${Math.max(0,45-i*2)},100%,${Math.max(38,58-i*.4)}%)`;return s.color}
+function roundRect(c,x,y,w,h,r){c.beginPath();c.roundRect?c.roundRect(x,y,w,h,r):(c.rect(x,y,w,h));}
+function endToMenu(){ $('gameOverModal').classList.remove('show');showScreen('menuScreen')}
+$('playBtn').addEventListener('click',startGame);
+document.querySelectorAll('[data-screen]').forEach(b=>b.addEventListener('click',()=>showScreen(b.dataset.screen)));
+document.querySelectorAll('.backBtn').forEach(b=>b.addEventListener('click',()=>showScreen('menuScreen')));
+$('homeBtn').addEventListener('click',()=>{stopRun();showScreen('menuScreen')});
+$('pauseBtn').addEventListener('click',togglePause);$('pauseBtn2').addEventListener('click',togglePause);$('resumeBtn').addEventListener('click',togglePause);
+$('restartBtn').addEventListener('click',startGame);$('againBtn').addEventListener('click',startGame);$('endMenuBtn').addEventListener('click',endToMenu);
+document.querySelectorAll('[data-dir]').forEach(b=>b.addEventListener('click',()=>{const [x,y]=b.dataset.dir.split(',').map(Number);setDirection(x,y)}));
+$('themeSelect').addEventListener('change',e=>{settings.theme=e.target.value;applyTheme();save();clickSound()});
+$('bgSelect').addEventListener('change',e=>{settings.background=e.target.value;save();draw();clickSound()});
+$('difficulty').addEventListener('change',e=>{settings.difficulty=e.target.value;save();clickSound()});
+$('modeSelect').addEventListener('change',e=>{settings.mode=e.target.value;save();clickSound()});
+$('musicVol').addEventListener('input',e=>{settings.music=+e.target.value;save();if(settings.music&&!musicTimer&&running&&!paused)startMusic();if(!settings.music)stopMusic()});
+$('sfxVol').addEventListener('input',e=>{settings.sfx=+e.target.value;save()});
+$('gridToggle').addEventListener('change',e=>{settings.grid=e.target.checked;save();draw()});
+$('vibrationToggle').addEventListener('change',e=>{settings.vibration=e.target.checked;save()});
+$('wrapToggle').addEventListener('change',e=>{settings.wrap=e.target.checked;save()});
+$('particlesToggle').addEventListener('change',e=>{settings.particles=e.target.checked;save();draw()});
+document.addEventListener('keydown',e=>{const map={ArrowUp:[0,-1],w:[0,-1],W:[0,-1],ArrowDown:[0,1],s:[0,1],S:[0,1],ArrowLeft:[-1,0],a:[-1,0],A:[-1,0],ArrowRight:[1,0],d:[1,0],D:[1,0]};if(map[e.key]){e.preventDefault();setDirection(...map[e.key])}if(e.key===' '||e.key==='Escape'){if($('gameScreen').classList.contains('active')){e.preventDefault();togglePause()}}});
+canvas.addEventListener('touchstart',e=>{const t=e.changedTouches[0];touchStart={x:t.clientX,y:t.clientY}},{passive:true});
+canvas.addEventListener('touchend',e=>{if(!touchStart)return;const t=e.changedTouches[0],dx=t.clientX-touchStart.x,dy=t.clientY-touchStart.y;if(Math.max(Math.abs(dx),Math.abs(dy))>18){if(Math.abs(dx)>Math.abs(dy))setDirection(dx>0?1:-1,0);else setDirection(0,dy>0?1:-1)}touchStart=null},{passive:true});
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&running&&!paused)togglePause()});
+window.addEventListener('resize',draw);
+applySettingsToUI();updateMenuStats();renderShop();renderAchievements();draw();
+})();
+</script>
+</body>
+</html>
